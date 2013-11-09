@@ -1,0 +1,51 @@
+#!/usr/bin/env ruby
+require 'thor'
+require 'euler'
+
+$data  = File.join(ENV['HOME'], ".euler")
+FileUtils.mkdir $data unless File.directory?($data)
+
+module Euler
+  class CLI < Thor
+    include Euler::DSL
+    include Euler::Helper::CLI
+
+    # downloads (prefetches) problems for offline usage later (caches them)
+    # args is specified on CLI using a space separated list of problem ids,
+    # which can include ranges (in the form: 31-39)
+    # examples of CLI arguments:
+    #   euler download 31              # a single problem
+    #   euler download 31 35           # multiple problems
+    #   euler download 31 35 58-89     # accepts ranges
+    #   euler download 23 31,35,58-89  # accepts comma-separated lists
+    desc "download ARGS", "download problems for offline use"
+    def download(*args)
+      # populate problem ids from the passed arguments
+      problems = args.parse_as_list
+
+      # ignore: just a formatting routine
+      probdis = " " * 14 + problems.map{|a| "%03d" % a}.each_slice(15).
+                             map{|a| a.join(", ")}.join("\n" + " " * 14)
+      show_info "Problems being downloaded for offline use:\n#{probdis}\n"
+
+      # if the solved_by stats are old, download fresh
+      unless cache.valid?("solved_by")
+        show_info "Downloading stats for number of solvers for all problems."
+        show_info "There may be a brief pause."
+        # we do not need to make s separate call to prefetch solved_by stats,
+        # as that will be done by the prefetching of problems, implicitely.
+      end
+
+      # we need to "prefetch" every problem, but the title_for method does
+      # that for us, as well as provides us with useful information to display
+      # to the users
+      problems.each do |prob|
+        show_info "Downloaded problem: #{"%03d" % prob} | #{title_for(prob).shorten}"
+      end
+
+      say_success "Finished!"
+    end
+  end
+end
+
+Euler::CLI.start(ARGV)
