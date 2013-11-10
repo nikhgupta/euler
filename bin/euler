@@ -8,7 +8,7 @@ module Euler
     include Thor::Actions
 
     class_option :verbose, type: :boolean, aliases: :v,
-                 desc: "be verbose, when possible"
+      desc: "be verbose, when possible"
 
     # downloads (prefetches) problems for offline usage later (caches them)
     # args is specified on CLI using a space separated list of problem ids,
@@ -28,7 +28,7 @@ module Euler
         map{|a| a.join(", ")}.join("\n" + " " * 14)
 
       say "info", "Problems being downloaded for offline use:\n#{probdis}\n",
-          :cyan if options.verbose?
+        :cyan if options.verbose?
 
       # if the solved_by stats are old, download fresh
       download_solved_by_stats_if_needed
@@ -54,7 +54,7 @@ module Euler
     # Euler problems.
     desc "prepare ID", "prepare problem with given ID for solving."
     option :force, type: :boolean, default: false, aliases: :f,
-           desc: "overwrite solution file, if it exists"
+      desc: "overwrite solution file, if it exists"
     def prepare(id)
 
       download_solved_by_stats_if_needed
@@ -75,15 +75,92 @@ module Euler
       end
     end
 
+    desc "solve ID [*INPUT]", "run solution for the problem with given ID"
+    option :tests, type: :boolean, default: true, aliases: :t,
+      desc: "run tests for the solution, if any"
+    option :checks, type: :boolean, default: false, aliases: :t,
+      desc: "run checks for the solution (only run if tests pass)"
+    option :force, type: :boolean, default: false, aliases: :f,
+      desc: "run the solution even if tests are not passed"
+    def solve(id, *input)
+
+      say "title", title_for(id), :magenta if options.verbose?
+
+      file = solution_file_for id
+      require file
+
+      solution = Euler.const_get("Solution#{id}").new
+
+      passed = true
+      if solution.test_cases.any? && options.tests?
+        say "info", "Running tests associated with this problem.",
+            :cyan if options.verbose?
+        solution.run_tests.each do |test|
+          display_test_or_check_result(test)
+          passed = false and break unless test[:passed]
+        end
+      end
+
+      if passed && solution.checks.any? && options.checks?
+        say "info", "Running checks associated with this problem.",
+            :cyan if options.verbose?
+        solution.run_checks.each do |check|
+          display_test_or_check_result(check)
+        end
+      end
+
+      if passed || options.force?
+        display_answer(solution)
+      else
+        say "error", "All tests did not pass..", :red
+        say "info", "Use --force option to run output, regardless",
+          :cyan if options.verbose?
+      end
+    end
+
     private
 
     def download_solved_by_stats_if_needed
       # if the solved_by stats are old, download fresh
       unless cache.valid?("solved_by")
         say "download", "Stats for number of solvers for Euler problems",
-            :magenta if options.verbose?
+          :magenta if options.verbose?
         say "info", "There may be a brief pause.", :cyan
         scraper.fetch_solved_by
+      end
+    end
+
+    def display_answer(solution, message = nil)
+      output  = solution.run
+      timer   = solution.time_taken.to_f
+      message = "#{output.inspect} in #{timer} seconds"
+      case
+      when timer >= 60
+        say "failed",  message, :red
+      when timer >= 30
+        say "warning", message, :yellow
+      else
+        say "success", message, :green
+      end
+    end
+
+    def display_test_or_check_result(res)
+      message  = "input: #{res[:input].inspect} | "
+      message += "output: #{res[:output].inspect} | "
+
+      if res[:expected] && !res[:passed]
+        message += "expected: #{res[:expected].inspect} | "
+      end
+
+      message += "time: #{res[:time]} seconds"
+
+      case res[:passed]
+      when true
+        say "passed", message, :green
+      when false
+        say "failed", message, :yellow
+      else
+        say "check", message, :magenta
       end
     end
 

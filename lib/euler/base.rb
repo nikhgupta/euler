@@ -31,7 +31,7 @@ module Euler
       @test_cases.each_with_index do |test, i|
         @input = test[:input]
         @test_cases[i][:output], @test_cases[i][:time] = run_with_benchmark
-        @test_cases[i][:result] = @test_cases[i][:output] == test[:expected]
+        @test_cases[i][:passed] = @test_cases[i][:output] == test[:expected]
       end
       @input = input    # restore input
       @test_cases
