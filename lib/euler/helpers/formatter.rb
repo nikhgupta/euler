@@ -52,7 +52,7 @@ module Euler
           table.push []
           width = [0] * tr.children.length unless width
           tr.children.each_with_index do |td, j|
-            text = self.html2text(td.to_s)
+            text = self.run(td.to_s)
             width[j] = text.length if !width[j] || text.length > width[j]
             table[i].push text
           end
