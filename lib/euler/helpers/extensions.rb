@@ -13,7 +13,6 @@ class String
   def break_even(len = 78, delim = "")
     parts = self.split("\n")
     parts.each_with_index do |part, i|
-      binding.pry
       parts[i] = part.scan(/.{1,#{len}}[\b|\W|\n]/).map(&:strip).join("\n" + delim)
     end
     parts.join("\n" + delim)

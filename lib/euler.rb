@@ -6,11 +6,11 @@ require "pry"
 require "thor"
 require "loofah"
 require "mechanize"
+require "user_config"
 
 # helpers
 require "euler/version"
 require "euler/helpers/formatter"
-require "euler/helpers/cli"
 require "euler/helpers/cache"
 require "euler/helpers/extensions"
 

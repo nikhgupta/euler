@@ -36,7 +36,7 @@ module Euler
     # name/title for a given problem
     def title_for(id)
       data = prefetch id
-      data[:data][:name].titlecase
+      data[:name].titlecase
     end
 
     # url for stats related to a problem.
@@ -48,13 +48,17 @@ module Euler
 
     # location of the file containing solution for a given problem
     def solution_file_for(id)
+      unless File.directory?(configuration["solutions"])
+        FileUtils.mkdir_p configuration["solutions"]
+      end
       File.join(configuration["solutions"], "solution_#{"%03d" % id}.rb")
     end
 
     # download/prefetch all available data for a given problem.
     # This method makes use of the scraper to scrape the url of the problem.
     def prefetch(id)
-      scraper.fetch_problem id
+      scraper.fetch_problem id unless cache.valid?("problem_#{id}")
+      cache.get("problem_#{id}")[:data]
     end
 
   end

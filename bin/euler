@@ -2,13 +2,13 @@
 require 'thor'
 require 'euler'
 
-$data  = File.join(ENV['HOME'], ".euler")
-FileUtils.mkdir $data unless File.directory?($data)
-
 module Euler
   class CLI < Thor
     include Euler::DSL
-    include Euler::Helper::CLI
+    include Thor::Actions
+
+    class_option :verbose, type: :boolean, aliases: :v,
+                 desc: "be verbose, when possible"
 
     # downloads (prefetches) problems for offline usage later (caches them)
     # args is specified on CLI using a space separated list of problem ids,
@@ -25,25 +25,76 @@ module Euler
 
       # ignore: just a formatting routine
       probdis = " " * 14 + problems.map{|a| "%03d" % a}.each_slice(15).
-                             map{|a| a.join(", ")}.join("\n" + " " * 14)
-      show_info "Problems being downloaded for offline use:\n#{probdis}\n"
+        map{|a| a.join(", ")}.join("\n" + " " * 14)
+
+      say "info", "Problems being downloaded for offline use:\n#{probdis}\n",
+          :cyan if options.verbose?
 
       # if the solved_by stats are old, download fresh
+      download_solved_by_stats_if_needed
+
+      batch = []
+      problems.each do |id|
+        prefetch id
+        batch.push "%03d" % id
+        if options.verbose?
+          message = "Problem: #{"%03d" % id} | #{title_for(id).shorten}"
+          say "download", message, :magenta
+        elsif batch.length == 10 || id == problems.last
+          say "download", "Problems: #{batch.join(", ")}", :magenta
+          batch = []
+        end
+      end
+
+      say "success", "downloaded #{problems.count} problems", :green
+    end
+
+    # Prepares a single problem for solving. This method will create
+    # a solution file for you, which you can use to readily start solving
+    # Euler problems.
+    desc "prepare ID", "prepare problem with given ID for solving."
+    option :force, type: :boolean, default: false, aliases: :f,
+           desc: "overwrite solution file, if it exists"
+    def prepare(id)
+
+      download_solved_by_stats_if_needed
+
+      if options.verbose? && !cache.valid?("problem_#{id}")
+        say "download", "Problem from Project Euler", :magenta
+      end
+
+      @data = prefetch id
+      file = solution_file_for id
+
+      if File.exists?(file) && !options.force?
+        say "failed", "file already exists", :red
+        say "info", "use --force option to overwrite", :cyan if options.verbose?
+        say "location", file, :magenta
+      else
+        template "solution.erb", file
+      end
+    end
+
+    private
+
+    def download_solved_by_stats_if_needed
+      # if the solved_by stats are old, download fresh
       unless cache.valid?("solved_by")
-        show_info "Downloading stats for number of solvers for all problems."
-        show_info "There may be a brief pause."
-        # we do not need to make s separate call to prefetch solved_by stats,
-        # as that will be done by the prefetching of problems, implicitely.
+        say "download", "Stats for number of solvers for Euler problems",
+            :magenta if options.verbose?
+        say "info", "There may be a brief pause.", :cyan
+        scraper.fetch_solved_by
       end
+    end
 
-      # we need to "prefetch" every problem, but the title_for method does
-      # that for us, as well as provides us with useful information to display
-      # to the users
-      problems.each do |prob|
-        show_info "Downloaded problem: #{"%03d" % prob} | #{title_for(prob).shorten}"
-      end
+    def say(status, message = "", log_status = true)
+      @shell ||= Thor::Shell::Color.new
+      log_status = false if @options and @options[:quiet]
+      @shell.say_status(status, message, log_status)
+    end
 
-      say_success "Finished!"
+    def self.source_root
+      File.join(File.dirname(File.dirname(__FILE__)), "data")
     end
   end
 end
