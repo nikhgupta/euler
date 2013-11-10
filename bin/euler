@@ -2,6 +2,8 @@
 require 'thor'
 require 'euler'
 
+# TODO: custom input in "solve" method
+
 module Euler
   class CLI < Thor
     include Euler::DSL
@@ -26,7 +28,6 @@ module Euler
       # ignore: just a formatting routine
       probdis = " " * 14 + problems.map{|a| "%03d" % a}.each_slice(15).
         map{|a| a.join(", ")}.join("\n" + " " * 14)
-
       say "info", "Problems being downloaded for offline use:\n#{probdis}\n",
         :cyan if options.verbose?
 
@@ -35,7 +36,7 @@ module Euler
 
       batch = []
       problems.each do |id|
-        prefetch id
+        data_for id
         batch.push "%03d" % id
         if options.verbose?
           message = "Problem: #{"%03d" % id} | #{title_for(id).shorten}"
@@ -63,7 +64,7 @@ module Euler
         say "download", "Problem from Project Euler", :magenta
       end
 
-      @data = prefetch id
+      @data = data_for id
       file = solution_file_for id
 
       if File.exists?(file) && !options.force?
@@ -86,31 +87,26 @@ module Euler
 
       say "title", title_for(id), :magenta if options.verbose?
 
-      file = solution_file_for id
-      require file
-
-      solution = Euler.const_get("Solution#{id}").new
-
       passed = true
-      if solution.test_cases.any? && options.tests?
+      if options.tests?
         say "info", "Running tests associated with this problem.",
             :cyan if options.verbose?
-        solution.run_tests.each do |test|
+        results_for_tests_on(id).each do |test|
           display_test_or_check_result(test)
           passed = false and break unless test[:passed]
         end
       end
 
-      if passed && solution.checks.any? && options.checks?
+      if passed && options.checks?
         say "info", "Running checks associated with this problem.",
             :cyan if options.verbose?
-        solution.run_checks.each do |check|
+        results_for_checks_on(id).each do |check|
           display_test_or_check_result(check)
         end
       end
 
       if passed || options.force?
-        display_answer(solution)
+        display_answer(results_for(id))
       else
         say "error", "All tests did not pass..", :red
         say "info", "Use --force option to run output, regardless",
@@ -126,18 +122,16 @@ module Euler
         say "download", "Stats for number of solvers for Euler problems",
           :magenta if options.verbose?
         say "info", "There may be a brief pause.", :cyan
-        scraper.fetch_solved_by
+        get_solved_by_stats
       end
     end
 
-    def display_answer(solution, message = nil)
-      output  = solution.run
-      timer   = solution.time_taken.to_f
-      message = "#{output.inspect} in #{timer} seconds"
+    def display_answer(res)
+      message = "#{res[0].inspect} in #{res[1]} seconds"
       case
-      when timer >= 60
+      when res[1].to_f >= 60
         say "failed",  message, :red
-      when timer >= 30
+      when res[1].to_f >= 30
         say "warning", message, :yellow
       else
         say "success", message, :green
