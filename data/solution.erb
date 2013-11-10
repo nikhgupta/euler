@@ -14,40 +14,65 @@ require 'euler'
 
 module Euler
   class Solution<%= @data[:id] %> < Base
-    def environment
-      # this method sets up environment for this problem.
-      # you should only set options for this problem here.
-
-      default_input 1000   # input can take arbitrary values, specify a default value.
-      # fixed_input 1000   # if solution or problem does not allow arbitrary values for input.
-      # read_input         # input is read from the problem statement itself
-
-      # use test cases? can be defined multiple times.
-      # test cases are only available, when input is set to be: "default"
-      # test_case 10, 23    # output should be 23 when input is 10
-
-      # try method named: "solution_<n>" for solving this problem.
-      try_solution 1        # assume "solution_1" to be current
-
-      # uncomment the following, when this problem has been solved.
-      # mark_as_solved
-    end
 
     def solution_1
-      # start writing your solution here..
-      # input is available in variable: "@input"
+    # Step 1: Set settings for this problem in the "environment" method, below.
+    # Step 2: Know that, input is available in variable: "@input".
+    # Step 3: Start writing your solution..
     end
 
     def solution_2
-      # a second variation of the solution to this problem
-      # this solution can be run by setting: "try_solution 2" inside "run" method
+    # A second variation of the solution to this problem.
+    # This solution can be run by setting: "try_solution 2"
+    # inside "environment" method.
 
-      # delete this method, if not needed, though it wont harm! :)
+    # Delete this method, if not needed, though it wont harm! :)
     end
 
     def named_solution
-      # a third variation of the solution to this problem
-      # this solution can be run by setting: "try_solution 'named_solution'" inside "run" method
+    # A third variation of the solution to this problem.
+    # This solution can be run by setting: "try_solution 'named_solution'"
+    # inside "environment" method.
+    end
+
+    def environment
+      # ;; this method sets up environment for this problem.
+      # ;; you should only set options for this problem here.
+
+      # REGARDING THE INPUT
+      # ===================
+      # ;; When the input can vary, you can set the default input as:
+      # default_input 1_000_000
+      # ;; Also, in this case, you are able to add tests, and input checks for the
+      # ;; problem. Input checks are simply some arbitrary value of input, you want
+      # ;; to check output for.
+      # test_case 10, 23
+      # check_for 10_000
+
+      # ;; In other cases, the input can be a fixed value due to constraints on the
+      # ;; problem or the way the solution has been written. This will help:
+      # fixed_input 1_000_000
+
+      # ;; Finally, in some really strange cases, the input is given as a string
+      # ;; of data. In these cases, you must manually add one more "#" character
+      # ;; in front of the corresponding data (in the problem statement above),
+      # ;; and then, use:
+      # read_input
+
+      # OTHER THINGS
+      # ============
+      # ;; Many times, you will want to write more than one approach to
+      # ;; a problem, and might want to switch between them from time to time.
+      # ;; The following method can be used to randomly switch b/w such methods.
+      # try_solution 1
+      # ;; The above statement makes Euler think that method with the name
+      # ;; "solution_1" is your current approach. If you rather feel savvy, and
+      # ;; have defined this approach/method by a custom name, you can pass:
+      # try_solution "custom_method_name_for_this_approach"
+
+      # ;; Finally, when you are done solving the problem, please mark it as
+      # ;; solved by using the following method:
+      # mark_as_solved
     end
 
   end

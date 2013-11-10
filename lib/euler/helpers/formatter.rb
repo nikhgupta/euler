@@ -1,9 +1,9 @@
 module Euler
   module Helper
-    module Formatter
+    module HTML2PlainTextFormatter
 
       # inclined towards converting math-like html to math-like text
-      def self.html2text(html)
+      def self.run(html)
         scrubber = Loofah::Scrubber.new do |node|
 
           if self.respond_to?("__#{node.name}2text")

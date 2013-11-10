@@ -54,19 +54,20 @@ module Euler
     # this method returns results for the test cases belonging to a problem
     def results_for_tests_on(id)
       parse_solution_for(id)
-      @solution.test_cases.any? ? @solution.run_tests : []
+      @solution.tests.any? ? @solution.perform_tests : []
     end
 
     # this method returns results for the checks belonging to a problem
     def results_for_checks_on(id)
       parse_solution_for(id)
-      @solution.checks.any? ? @solution.run_checks : []
+      @solution.checks.any? ? @solution.perform_checks : []
     end
 
     # this method returns results for the answer to a problem
     def results_for(id)
       parse_solution_for(id)
-      @solution.run_with_benchmark
+      @solution.run
+      [@solution.answer, @solution.time, @solution.error]
     end
 
     # wrapper for downloading solved_by stats if required

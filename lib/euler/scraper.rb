@@ -19,7 +19,7 @@ module Euler
 
       prob[:solved_by] = fetch_solved_by(id)[:data][:solved_by]
       prob[:raw]       = page.search("#content .problem_content").inner_html
-      prob[:text]      = Euler::Helper::Formatter.html2text(prob[:raw])
+      prob[:text]      = Euler::Helper::HTML2PlainTextFormatter.run(prob[:raw])
 
       # cache the data for around 1 year, and return it
       cache.add("problem_#{id}", prob, 365)

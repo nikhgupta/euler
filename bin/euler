@@ -127,6 +127,8 @@ module Euler
     end
 
     def display_answer(res)
+      say "error", "output: " + res[2], :red and return if res[2]
+
       message = "#{res[0].inspect} in #{res[1]} seconds"
       case
       when res[1].to_f >= 60
@@ -140,6 +142,12 @@ module Euler
 
     def display_test_or_check_result(res)
       message  = "input: #{res[:input].inspect} | "
+      if res[:error]
+        message += "error: #{res[:error]}"
+        type = res[:expected] ? "test" : "check"
+        say "#{type}", message, :red and return
+      end
+
       message += "output: #{res[:output].inspect} | "
 
       if res[:expected] && !res[:passed]

@@ -1,63 +1,55 @@
+require 'timeout'
+
 module Euler
   class Base
 
-    attr_reader :input, :solved, :input_can_change, :test_cases, :solution, :checks, :time_taken
+    attr_reader :input, :answer, :error, :time,
+                :solved, :input_can_change, :solution, :terminate_at,
+                :tests, :checks
+
 
     def initialize
       @id = self.class.to_s.gsub("Euler::Solution", "").to_i
       raise StandardError, "Unable to create object of type: Euler::Base" unless @id > 0
 
-      @input            = nil
-      @solved           = false
-      @input_can_change = false
-      @checks           = []
-      @test_cases       = []
-      @solution         = nil
-      @time_taken       = 0
+      @input            = nil    # input that will be passed to the solution
+      @answer           = nil    # answer that was output upon execution
+      @error            = nil    # any error that occurred when executed
+      @time             = 0      # time taken to execute
+      @solved           = false  # has the solution been marked as solved?
+      @input_can_change = false  # can the input vary? (true, if default_input was used)
+      @solution         = nil    # method used for execution
+      @terminate_at     = 60     # terminate execution if time exceeds this limit (in seconds)
+      @tests            = []     # various tests  for the problem (output equals expectation?)
+      @checks           = []     # various checks for the problem (input => output)
 
-      self.environment
+      self.environment           # override above vars with user-settings
     end
 
     def run
-      raise StandardError, "Could not find solution method!" unless self.respond_to?(@solution)
-      output, @time_taken = run_with_benchmark
-      return output
+      @answer, @time, @error = run_with_benchmark
     end
 
-    def run_tests
-      # tests are only meaningful if the input can be varied
+    def perform_tests
+      # tests & checks are only meaningful if the input can be varied
       return unless @input_can_change
-      input = @input     # save problem's input
-      @test_cases.each_with_index do |test, i|
-        @input = test[:input]
-        @test_cases[i][:output], @test_cases[i][:time] = run_with_benchmark
-        @test_cases[i][:passed] = @test_cases[i][:output] == test[:expected]
+      @tests.each_with_index do |test, i|
+        output, time, error = run_with_benchmark(test[:input])
+        @tests[i].merge!({ output: output, time: time,
+                          error: error, passed: output == test[:expected]})
       end
-      @input = input    # restore input
-      @test_cases
+      @tests
     end
 
     # checks are kinda like tests, but they do not have any expectations
-    def run_checks
-      # checks are only meaningful if the input can be varied
+    def perform_checks
+      # tests & checks are only meaningful if the input can be varied
       return unless @input_can_change
-      input = @input     # save problem's input
       @checks.each_with_index do |check, i|
-        @input = check[:input]
-        @checks[i][:output], @checks[i][:time] = run_with_benchmark
+        output, time, error = run_with_benchmark(check[:input])
+        @checks[i].merge!({ output: output, time: time, error: error })
       end
-      @input = input    # restore input
       @checks
-    end
-
-    def run_with_benchmark
-      output = nil
-
-      time = Benchmark.measure do
-        output = self.send(@solution)
-      end.to_s.match(/\(\s*(.*)\)/)[1]
-
-      [output, time]
     end
 
     protected
@@ -71,9 +63,8 @@ module Euler
       @input = input
     end
 
+    # TODO: implement the method
     def read_input
-      # TODO: implement the method
-      # @input =
     end
 
     def try_solution(name)
@@ -85,19 +76,54 @@ module Euler
     end
 
     def test_case(input, output)
-      @test_cases.push({input: input, expected: output})
+      @tests.push({input: input, expected: output})
     end
 
     def check_for(input)
       @checks.push({input: input})
     end
 
+    # TODO: implement the method
     def benchmark(&block)
-      Benchmark.bmbm do |bm|
-        bm.report do
-          yield
-        end
+    end
+
+    # terminate the solution if running it takes longer than given seconds
+    def terminate_at(seconds = 60)
+      @terminate_at = seconds
+    end
+
+    # compare the current solution to the following approaches
+    # TODO: implement the method
+    def compare_to_approach(*args)
+
+    end
+
+    private
+
+    def run_with_benchmark(input = nil, solution = nil)
+      _input     = @input           # copy current input
+      @input     = input if input   # override input
+      solution ||= @solution
+      answer = error = nil
+
+      unless self.respond_to?(solution)
+        error = "Could not find method: #{solution}"
+        return [answer, 0, error]
       end
+
+      time = Benchmark.measure do
+        begin
+          Timeout::timeout(@terminate_at) do
+            answer = self.send(solution)
+          end
+        rescue Timeout::Error
+          answer = nil
+          error  = "Killed execution after #{@terminate_at} seconds."
+        end
+      end.to_s.match(/\(\s*(.*)\)/)[1]
+
+      @input = _input                # restore input
+      [answer, time, error]
     end
   end
 end
